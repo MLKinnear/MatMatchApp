@@ -5,18 +5,18 @@ import {
 } from 'react';
 import { Audio } from 'expo-av';
 
+// Custom hook to manage bell sound playback
 export default function useAudioBell() {
   const bellRef = useRef(null);
 
   useEffect(() => {
     (async () => {
       try {
-        // allow sound in silent mode on iOS
         await Audio.setAudioModeAsync({
           playsInSilentModeIOS: true,
           staysActiveInBackground: false,
         });
-        // load bell
+
         const { sound } = await Audio.Sound.createAsync(
           require('../assets/bell.mp3')
         );

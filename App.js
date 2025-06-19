@@ -36,28 +36,26 @@ export default function App() {
   const [restMinutes, setRestMinutes] = useState('1');
   const [hasStarted, setHasStarted] = useState(false);
 
-  // Loading saved data on mount
+  // Load saved data on mount
   useEffect(() => {
     (async () => {
-      const saved = await loadData();
-      setMembers(saved.members || []);
-      setInitialRoundIndex(saved.currentPairIndex || 0);
+      const { members: savedMembers = [], currentPairIndex = 0 } = await loadData();
+      setMembers(savedMembers);
+      setInitialRoundIndex(currentPairIndex);
       setLoading(false);
     })();
   }, []);
 
-  // Persist members & progress when they change
+  // Persist data when members or index changes
   useEffect(() => {
     if (!loading) {
       saveData({ members, currentPairIndex: initialRoundIndex });
     }
   }, [members, initialRoundIndex, loading]);
 
-  // Durations in seconds
   const matchSec = Math.max(1, parseInt(matchMinutes, 10) || 0) * 60;
   const restSec  = Math.max(0, parseInt(restMinutes, 10) || 0) * 60;
 
-  // Pairing & timer hook
   const {
     rounds,
     currentRoundIndex,
@@ -76,33 +74,18 @@ export default function App() {
     restDuration: restSec,
   });
 
-  // Bell audio hook
   const playBell = useAudioBell();
-  // Play bell at start and end of each period
+
   useEffect(() => {
-    // Only ring when the timer is actively running or switching modes
-    if (!isRunning && mode === 'match') return; // no ring if not started
+    if (!isRunning && mode === 'match') return;
     playBell();
   }, [mode, currentRoundIndex, isRunning, playBell]);
 
-  // Handles
-  const handleStart = useCallback(() => {
-    start();
-  }, [start]);
+  const handleStart = useCallback(() => start(), [start]);
+  const handlePause = useCallback(() => pause(), [pause]);
+  const handleSkip = useCallback(() => skipRound(), [skipRound]);
+  const handleReset = useCallback(() => resetRound(), [resetRound]);
 
-  const handlePause = useCallback(() => {
-    pause();
-  }, [pause]);
-
-  const handleSkip = useCallback(() => {
-    skipRound();
-  }, [skipRound]);
-
-  const handleReset = useCallback(() => {
-    resetRound();
-  }, [resetRound]);
-
-  // Member add/remove
   const addMember = useCallback(() => {
     const name = newName.trim();
     if (!name) return;
@@ -110,16 +93,16 @@ export default function App() {
       Alert.alert('Duplicate', 'That member already exists.');
       return;
     }
-    setMembers(m => [...m, name]);
+    setMembers((m) => [...m, name]);
     setNewName('');
     setInitialRoundIndex(0);
   }, [newName, members]);
 
-  const removeMember = useCallback(name => {
-    setMembers(m => m.filter(x => x !== name));
+  const removeMember = useCallback((name) => {
+    setMembers((m) => m.filter((x) => x !== name));
     setInitialRoundIndex(0);
   }, []);
-  // Resets All Data w/ Confirmation
+
   const confirmResetAll = () => {
     Alert.alert(
       'Reset All?',
@@ -127,19 +110,19 @@ export default function App() {
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Yes, Reset', style: 'destructive',
+          text: 'Yes, Reset',
+          style: 'destructive',
           onPress: async () => {
             await clearData();
             setMembers([]);
             setInitialRoundIndex(0);
             setHasStarted(false);
           },
-        }
+        },
       ]
     );
   };
 
-  // Render logic
   if (loading) {
     return (
       <SafeAreaView style={styles.flex}>
